@@ -44,7 +44,7 @@ bool PipeVector::getPipetoRead(Pipe &pipeToCopy) {
 Pipe &PipeVector::getPipetoWrite(int countDown) {
     /* 找到含有相同的countDown pipe 并返回 */
     for (string::size_type i = 0; i < v_pipe.size(); i++) {
-        if (v_pipe[i].countDown == countDown) {
+        if (v_pipe[i].countDown == countDown && countDown != 0) {
             if (v_pipe[i].inThisLineFlag ==1 ) 
                 continue;
             else    
@@ -88,7 +88,5 @@ void PipeVector::updateCountDown() {
         v_pipe[i].inThisLineFlag = 0;
     }
 }
-
-
 
 

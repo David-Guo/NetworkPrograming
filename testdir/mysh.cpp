@@ -48,12 +48,12 @@ void Mysh::parseCommand(string s){
     }
         
     for (string::size_type i = 0; i < commands.size(); i++) {
-
         //cout << commands[i] << endl;
         pipeToCommand(commands[i]); 
         /* 清理掉countDown == 0 的pipe */
         pipevector.eraseInvalidPipe();
     }
+    /* 将所有pipe vector中的留下pipe 的countDown减一 */
     pipevector.updateCountDown();
 
 }
@@ -171,7 +171,7 @@ bool Mysh::executeProcess(string str, Pipe readPipeToDestroy, int pipefd[2], int
         dup2(pipefd[0], 0);
         dup2(pipefd[1], outOrErr);
         if (pipefd[0] != 0) close(pipefd[0]);
-        if (pipefd[1] != 1) close(pipefd[1]);
+        if (pipefd[1] != outOrErr) close(pipefd[1]);
         int Status = execvp(argv[0], argv);
         if (Status == -1) cerr << "Unknown commmand: [" << args[0] << "]." << endl;
         exit(1);
