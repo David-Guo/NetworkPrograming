@@ -12,8 +12,8 @@ void Mysh::setEnv(string line) {
     int lastPnt = line.find_first_not_of(" ", firstPnt + 4);
     firstPnt = line.find_first_of(" \n", lastPnt);
     PATH = line.substr(lastPnt, firstPnt - lastPnt);
-    setenv("PATH", PATH.c_str(), 2);
-    cout << "courent PATH" << PATH << endl;
+    //setenv("PATH", PATH.c_str(), 2);
+    //cout << "courent PATH" << PATH << endl;
 }
 
 void Mysh::printEnv() {
@@ -66,7 +66,7 @@ void Mysh::parseCommand(string s){
         //cout << commands[i] << endl;
         pipeToCommand(commands[i]); 
         if (isUnkCmd == 1) break;
-        
+
         /* 清理掉countDown == 0 的pipe */
         pipevector.eraseInvalidPipe();
     }
@@ -76,7 +76,7 @@ void Mysh::parseCommand(string s){
 }
 
 bool Mysh::pipeToCommand(string s) {
-    
+
     int pipefd[2];
     Pipe readPipe;
     int outOrErr;
@@ -92,37 +92,37 @@ bool Mysh::pipeToCommand(string s) {
      * 还要通过outOrErr向executeProcess 传递标准输出还是错误
      * 从而识别进程重定向输出还是错误到pipdfd[1]
      */
-   size_t getPoint = 0;
+    size_t getPoint = 0;
 
-   if ((getPoint = s.find_first_of('>')) != string::npos) {
-       getPoint = s.find_first_not_of(' ', getPoint + 1);
-       string pipeFile = s.substr(getPoint, s.find_first_of(" \n", getPoint + 1) - getPoint);
-       s = s.substr(0, s.find_first_of('>'));
-       pipefd[1] = open(pipeFile.c_str(), O_RDWR | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
-       outOrErr = 1;
-   }
-   else if ((getPoint = s.find_first_of('|')) != string::npos) {
-       string downNum = s.substr(getPoint + 1, s.find_first_of(" \n", getPoint + 1) - getPoint - 1);
-       if (downNum == "") downNum = "0";
-       int countDown = atoi(downNum.c_str());
-       outOrErr = 1;
-       Pipe writePipe = pipevector.getPipetoWrite(countDown);
-       pipefd[1] = writePipe.writeFD;
-   }
-   else if ((getPoint = s.find_first_of('!')) != string::npos) {
-       string downNum = s.substr(getPoint + 1, s.find_first_of(" \n", getPoint + 1) - getPoint - 1);
-       if (downNum == "" ) downNum = "0";
-       int countDown = atoi(downNum.c_str());
-       outOrErr = 2;
-       Pipe writePipe = pipevector.getPipetoWrite(countDown);
-       pipefd[1] = writePipe.writeFD;
-   }
-   else {
-       pipefd[1] = 1;
-       outOrErr = 1;
-   }
+    if ((getPoint = s.find_first_of('>')) != string::npos) {
+        getPoint = s.find_first_not_of(' ', getPoint + 1);
+        string pipeFile = s.substr(getPoint, s.find_first_of(" \n", getPoint + 1) - getPoint);
+        s = s.substr(0, s.find_first_of('>'));
+        pipefd[1] = open(pipeFile.c_str(), O_RDWR | O_CREAT | O_APPEND, 0666);// S_IRUSR | S_IWUSR);
+        outOrErr = 1;
+    }
+    else if ((getPoint = s.find_first_of('|')) != string::npos) {
+        string downNum = s.substr(getPoint + 1, s.find_first_of(" \n", getPoint + 1) - getPoint - 1);
+        if (downNum == "") downNum = "0";
+        int countDown = atoi(downNum.c_str());
+        outOrErr = 1;
+        Pipe writePipe = pipevector.getPipetoWrite(countDown);
+        pipefd[1] = writePipe.writeFD;
+    }
+    else if ((getPoint = s.find_first_of('!')) != string::npos) {
+        string downNum = s.substr(getPoint + 1, s.find_first_of(" \n", getPoint + 1) - getPoint - 1);
+        if (downNum == "" ) downNum = "0";
+        int countDown = atoi(downNum.c_str());
+        outOrErr = 2;
+        Pipe writePipe = pipevector.getPipetoWrite(countDown);
+        pipefd[1] = writePipe.writeFD;
+    }
+    else {
+        pipefd[1] = 1;
+        outOrErr = 1;
+    }
 
-   return executeProcess(s, readPipe, pipefd, outOrErr);
+    return executeProcess(s, readPipe, pipefd, outOrErr);
 }
 /* outOrErr = 1 说明要重定向标准输出
  * outOrErr = 2 说明要重定向标准错误
@@ -160,7 +160,7 @@ bool Mysh::executeProcess(string str, Pipe readPipeToDestroy, int pipefd[2], int
             lastPnt = firstPnt;
         }
     }
-    
+
     char **argv = new char*[args.size() + 1];
     for (string::size_type i = 0; i < args.size(); i++) {
         argv[i] = new char[args[i].length() + 1];
@@ -170,7 +170,7 @@ bool Mysh::executeProcess(string str, Pipe readPipeToDestroy, int pipefd[2], int
     }
     argv[args.size()] = NULL;
 
-    signal(SIGPIPE, SIG_DFL);
+    // signal(SIGPIPE, SIG_DFL);
     /* 此处必须要加，如果不是从标准输入读数据，必须要关掉该pipe 的写方向 */
     if (pipefd[0] != 0)
         close(readPipeToDestroy.writeFD);
@@ -184,8 +184,8 @@ bool Mysh::executeProcess(string str, Pipe readPipeToDestroy, int pipefd[2], int
         return 0;
     }
     else if (childpid == 0) {
-        cout << "exec read  pipe: " <<  pipefd[0] << endl;
-        cout << "exec write pipe: " <<  pipefd[1] << endl;
+/*        cout << "exec read  pipe: " <<  pipefd[0] << endl;*/
+        /*cout << "exec write pipe: " <<  pipefd[1] << endl;*/
         dup2(pipefd[0], 0);
         dup2(pipefd[1], outOrErr);
         if (pipefd[0] != 0) close(pipefd[0]);
@@ -199,20 +199,23 @@ bool Mysh::executeProcess(string str, Pipe readPipeToDestroy, int pipefd[2], int
     else {
         int Status;
         if (wait(&Status) < 0) {
-            cout << "error status: " << Status << endl;
+            //cout << "error status: " << Status << endl;
             return false;
         }
         else  {
-            //if (pipefd[1] != 1) close(pipefd[1]);
-            /* 注意此处不能关掉 write pipe 否则多个pipe 不会合并!!! */
-            if (pipefd[0] != 0) close(pipefd[0]);
-            cout << "right status: " << Status << endl;
             /* 子进程执行unkcmd 时wait 得到的status 值为256 */
-            if (Status == 256) {
+            if (Status != 0) {
                 pipevector.errorHandle(readPipeToDestroy, pipefd, outOrErr);
-            /* 直接结束本行命令的跌代，在commands 处检查为1则结束loop */
-            isUnkCmd = 1;
+                /* 直接结束本行命令的跌代，在commands 处检查为1则结束loop */
+                isUnkCmd = 1;
+                return true;
             }
+            /* 注意此处不能关掉 write pipe 否则多个pipe 不会合并!!! */
+            //if (pipefd[1] != 1) close(pipefd[1]);
+            /* 出现错误命令时不能关掉读 pipe !!! */
+            if (pipefd[0] != 0) close(pipefd[0]);
+            //cout << "right status: " << Status << endl;
+            isUnkCmd = 0;
 
             return true;
         }
@@ -222,29 +225,30 @@ bool Mysh::executeProcess(string str, Pipe readPipeToDestroy, int pipefd[2], int
         cout << argv[i] << endl;
         delete(argv[i]);
     }
+    return true;
 }
 
-        
+
 int main() {
 
     /*if (chdir("./ras") != 0) {*/
-        //cerr << "Change dirctory error" << endl;
-        //exit(1);
+    //cerr << "Change dirctory error" << endl;
+    //exit(1);
     /*}*/
 
     Mysh shell;
     shell.setEnv("setenv PATH bin:.");
     shell.printEnv();
     for ( ; ; ) {	
-		string tempStr;
-		std::getline(std::cin,tempStr);
-		
-		tempStr += "\n";
-		shell.parseCommand(tempStr);
+        string tempStr;
+        std::getline(std::cin,tempStr);
+
+        tempStr += "\n";
+        shell.parseCommand(tempStr);
         if(shell.isExit)
             break;
         /* 换成close(socker) */
-		cout << "% " << flush;
+        cout << "% " << flush;
 
     }
 
