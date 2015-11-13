@@ -1,4 +1,6 @@
 #include <iostream>
+#include <fcntl.h>
+#include <sys/stat.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <cstring>
@@ -15,6 +17,7 @@
 #define SERV_TCP_POTR 127.0.0.1
 #define SERV_TCP_PORT 12344
 using namespace std;
+char log[] = "log.txt";
 
 void serve(int sockfd){
 
@@ -35,22 +38,25 @@ void serve(int sockfd){
 	Mysh shell;
 	
 	shell.setEnv("setenv PATH bin:.");
-	
+	int logfd = creat(log, 0666);
+    dup2(logfd, sockfd);
 	for ( ; ; ) {	
 		string tempStr;
 		std::getline(std::cin, tempStr);
 
-        
-		size_t tempPos = tempStr.find_first_of("\r", 0);
+        size_t tempPos = tempStr.find_first_of("\r", 0);
         tempStr[tempPos]= '\n';
 		//tempStr += "\n";
-		shell.parseCommand(tempStr);
+		size_t sizelog = write(logfd, tempStr.c_str(), tempStr.size());
+        if (sizelog != tempStr.size()) cout << "write log error" << endl;
+        shell.parseCommand(tempStr);
         if (shell.isExit) {
             close(sockfd);
             break;
         }
 		cout << "% " << flush;
 	}
+    close(logfd);
 	
     dup2(tempStdinFd, 0);
     dup2(tempStdoutFd, 1);

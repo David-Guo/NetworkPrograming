@@ -1,3 +1,4 @@
 *.swp
 [Bb]in
 *.ycm
+remote_shell/log.txt
